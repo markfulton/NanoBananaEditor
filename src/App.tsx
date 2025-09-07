@@ -5,6 +5,7 @@ import { Header } from './components/Header';
 import { PromptComposer } from './components/PromptComposer';
 import { ImageCanvas } from './components/ImageCanvas';
 import { HistoryPanel } from './components/HistoryPanel';
+import { NotificationContainer } from './components/NotificationContainer';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useAppStore } from './store/useAppStore';
 
@@ -52,6 +53,7 @@ function AppContent() {
           <HistoryPanel />
         </div>
       </div>
+      <NotificationContainer />
     </div>
   );
 }

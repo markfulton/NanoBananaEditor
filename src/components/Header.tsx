@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { Button } from './ui/Button';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, Settings } from 'lucide-react';
 import { InfoModal } from './InfoModal';
+import { SettingsModal } from './SettingsModal';
+import { useAppStore } from '../store/useAppStore';
 
 export const Header: React.FC = () => {
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const { showSettings, setShowSettings } = useAppStore();
 
   return (
     <>
@@ -28,6 +31,13 @@ export const Header: React.FC = () => {
           <Button 
             variant="ghost" 
             size="icon"
+            onClick={() => setShowSettings(true)}
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon"
             onClick={() => setShowInfoModal(true)}
           >
             <HelpCircle className="h-5 w-5" />
@@ -36,6 +46,7 @@ export const Header: React.FC = () => {
       </header>
       
       <InfoModal open={showInfoModal} onOpenChange={setShowInfoModal} />
+      <SettingsModal open={showSettings} onOpenChange={setShowSettings} />
     </>
   );
 };
