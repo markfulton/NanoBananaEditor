@@ -23,3 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Development files
+.claude/
+*.tmp
+*.temp
+.scratch/

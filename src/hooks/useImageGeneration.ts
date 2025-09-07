@@ -1,11 +1,13 @@
 import { useMutation } from '@tanstack/react-query';
-import { geminiService, GenerationRequest, EditRequest } from '../services/geminiService';
+import { geminiService, GenerationRequest, EditRequest, GeminiError } from '../services/geminiService';
 import { useAppStore } from '../store/useAppStore';
+import { useNotifications } from './useNotifications';
 import { generateId } from '../utils/imageUtils';
 import { Generation, Edit, Asset } from '../types';
 
 export const useImageGeneration = () => {
   const { addGeneration, setIsGenerating, setCanvasImage, setCurrentProject, currentProject } = useAppStore();
+  const { showError } = useNotifications();
 
   const generateMutation = useMutation({
     mutationFn: async (request: GenerationRequest) => {
@@ -75,8 +77,17 @@ export const useImageGeneration = () => {
       }
       setIsGenerating(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Generation failed:', error);
+      
+      if (error && error.userMessage) {
+        // Handle GeminiError
+        showError('Image generation failed', error.userMessage);
+      } else {
+        // Handle other errors
+        showError('Image generation failed', 'An unexpected error occurred. Please try again.');
+      }
+      
       setIsGenerating(false);
     }
   });
@@ -101,6 +112,7 @@ export const useImageEditing = () => {
     seed,
     temperature 
   } = useAppStore();
+  const { showError } = useNotifications();
 
   const editMutation = useMutation({
     mutationFn: async (instruction: string) => {
@@ -260,8 +272,17 @@ export const useImageEditing = () => {
       }
       setIsGenerating(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Edit failed:', error);
+      
+      if (error && error.userMessage) {
+        // Handle GeminiError
+        showError('Image editing failed', error.userMessage);
+      } else {
+        // Handle other errors
+        showError('Image editing failed', 'An unexpected error occurred. Please try again.');
+      }
+      
       setIsGenerating(false);
     }
   });

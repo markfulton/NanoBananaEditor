@@ -1,8 +1,73 @@
 import { GoogleGenAI } from '@google/genai';
 
 // Note: In production, this should be handled via a backend proxy
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'demo-key';
-const genAI = new GoogleGenAI({ apiKey: API_KEY });
+const getApiKey = () => {
+  const storedKey = localStorage.getItem('gemini-api-key');
+  return storedKey || import.meta.env.VITE_GEMINI_API_KEY || 'demo-key';
+};
+
+export interface GeminiError {
+  type: 'api_key_invalid' | 'quota_exceeded' | 'network_error' | 'invalid_request' | 'unknown_error';
+  message: string;
+  userMessage: string;
+}
+
+const parseGeminiError = (error: any): GeminiError => {
+  const errorMessage = error.message || error.toString();
+  
+  // API Key related errors
+  if (errorMessage.includes('API_KEY_INVALID') || 
+      errorMessage.includes('invalid API key') ||
+      errorMessage.includes('PERMISSION_DENIED') ||
+      error.status === 401 || 
+      error.status === 403) {
+    return {
+      type: 'api_key_invalid',
+      message: errorMessage,
+      userMessage: 'Invalid API key. Please check your Gemini API key in settings.'
+    };
+  }
+  
+  // Quota exceeded
+  if (errorMessage.includes('QUOTA_EXCEEDED') || 
+      errorMessage.includes('quota exceeded') ||
+      error.status === 429) {
+    return {
+      type: 'quota_exceeded',
+      message: errorMessage,
+      userMessage: 'API quota exceeded. Please wait and try again later, or check your billing in Google AI Studio.'
+    };
+  }
+  
+  // Network errors
+  if (errorMessage.includes('network') || 
+      errorMessage.includes('fetch') ||
+      error.name === 'NetworkError') {
+    return {
+      type: 'network_error',
+      message: errorMessage,
+      userMessage: 'Network error. Please check your internet connection and try again.'
+    };
+  }
+  
+  // Invalid request format
+  if (errorMessage.includes('INVALID_ARGUMENT') || 
+      errorMessage.includes('invalid') ||
+      error.status === 400) {
+    return {
+      type: 'invalid_request',
+      message: errorMessage,
+      userMessage: 'Invalid request format. Please try again with different settings.'
+    };
+  }
+  
+  // Unknown error
+  return {
+    type: 'unknown_error',
+    message: errorMessage,
+    userMessage: 'An unexpected error occurred. Please try again.'
+  };
+};
 
 export interface GenerationRequest {
   prompt: string;
@@ -28,6 +93,7 @@ export interface SegmentationRequest {
 export class GeminiService {
   async generateImage(request: GenerationRequest): Promise<string[]> {
     try {
+      const genAI = new GoogleGenAI({ apiKey: getApiKey() });
       const contents: any[] = [{ text: request.prompt }];
       
       // Add reference images if provided
@@ -58,12 +124,14 @@ export class GeminiService {
       return images;
     } catch (error) {
       console.error('Error generating image:', error);
-      throw new Error('Failed to generate image. Please try again.');
+      const geminiError = parseGeminiError(error);
+      throw geminiError;
     }
   }
 
   async editImage(request: EditRequest): Promise<string[]> {
     try {
+      const genAI = new GoogleGenAI({ apiKey: getApiKey() });
       const contents = [
         { text: this.buildEditPrompt(request) },
         {
@@ -111,12 +179,14 @@ export class GeminiService {
       return images;
     } catch (error) {
       console.error('Error editing image:', error);
-      throw new Error('Failed to edit image. Please try again.');
+      const geminiError = parseGeminiError(error);
+      throw geminiError;
     }
   }
 
   async segmentImage(request: SegmentationRequest): Promise<any> {
     try {
+      const genAI = new GoogleGenAI({ apiKey: getApiKey() });
       const prompt = [
         { text: `Analyze this image and create a segmentation mask for: ${request.query}
 
@@ -149,7 +219,26 @@ Only segment the specific object or region requested. The mask should be a binar
       return JSON.parse(responseText);
     } catch (error) {
       console.error('Error segmenting image:', error);
-      throw new Error('Failed to segment image. Please try again.');
+      const geminiError = parseGeminiError(error);
+      throw geminiError;
+    }
+  }
+
+  async validateApiKey(apiKey: string): Promise<{ valid: boolean; error?: GeminiError }> {
+    try {
+      const tempGenAI = new GoogleGenAI({ apiKey });
+      
+      // Simple test request to validate the API key
+      const response = await tempGenAI.models.generateContent({
+        model: "gemini-2.5-flash-image-preview",
+        contents: [{ text: "Test" }],
+      });
+      
+      return { valid: true };
+    } catch (error) {
+      console.error('API key validation failed:', error);
+      const geminiError = parseGeminiError(error);
+      return { valid: false, error: geminiError };
     }
   }
 
