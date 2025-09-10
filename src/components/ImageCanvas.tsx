@@ -289,6 +289,9 @@ export const ImageCanvas: React.FC = () => {
           onMouseDown={handleMouseDown}
           onMousemove={handleMouseMove}
           onMouseup={handleMouseUp}
+          onTouchStart={handleMouseDown}
+          onTouchMove={handleMouseMove}
+          onTouchEnd={handleMouseUp}
           style={{ 
             cursor: selectedTool === 'mask' ? 'crosshair' : 'default' 
           }}
