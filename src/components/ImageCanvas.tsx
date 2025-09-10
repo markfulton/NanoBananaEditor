@@ -78,7 +78,14 @@ export const ImageCanvas: React.FC = () => {
   }, []);
 
   const handleMouseDown = (e: any) => {
-    if (selectedTool !== 'mask' || !image) return;
+    // Prevent default browser actions like scrolling on touch devices
+    if (e.evt.cancelable) {
+      e.evt.preventDefault();
+    }
+
+    if (selectedTool !== 'mask' || !image) {
+      return;
+    }
     
     setIsDrawing(true);
     const stage = e.target.getStage();
@@ -102,6 +109,10 @@ export const ImageCanvas: React.FC = () => {
   };
 
   const handleMouseMove = (e: any) => {
+    // Prevent default browser actions like scrolling on touch devices
+    if (e.evt.cancelable) {
+      e.evt.preventDefault();
+    }
     if (!isDrawing || selectedTool !== 'mask' || !image) return;
     
     const stage = e.target.getStage();
