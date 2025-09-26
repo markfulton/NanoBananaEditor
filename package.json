@@ -7,7 +7,10 @@
     "dev": "concurrently \"npm:dev:frontend\" \"npm:dev:backend\"",
     "dev:frontend": "vite",
     "dev:backend": "node --loader ts-node/esm server.ts",
-    "build": "vite build",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "vite build",
+    "build:backend": "tsc --project tsconfig.server.json",
+    "start": "node dist-server/server.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
