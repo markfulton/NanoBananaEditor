@@ -1,5 +1,5 @@
-const express = require('express');
-const { GoogleGenAI } = require('@google/genai');
+import express from 'express';
+import { GoogleGenAI } from '@google/genai';
 import type { Request, Response } from 'express';
 
 const app = express();

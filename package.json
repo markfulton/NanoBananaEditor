@@ -2,14 +2,15 @@
   "name": "vite-react-typescript-starter",
   "private": true,
   "version": "0.0.0",
+  "type": "module",
   "scripts": {
     "dev": "concurrently \"npm:dev:frontend\" \"npm:dev:backend\"",
     "dev:frontend": "vite",
-    "dev:backend": "ts-node server.ts",
+    "dev:backend": "node --loader ts-node/esm server.mts",
     "build": "npm run build:frontend && npm run build:backend",
     "build:frontend": "vite build",
-    "build:backend": "tsc --project tsconfig.server.json",
-    "start": "node dist-server/server.js",
+    "build:backend": "tsc --project tsconfig.server.json && echo '{\"type\": \"module\"}' > dist-server/package.json",
+    "start": "node dist-server/server.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
