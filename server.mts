@@ -144,7 +144,7 @@ app.post('/api/segment', async (req: Request, res: Response) => {
 });
 
 // All other routes should serve the React app
-app.get('/*', (req, res) => {
+app.get('/:path(*)', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
 });
 
