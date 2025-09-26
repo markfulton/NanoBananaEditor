@@ -1,11 +1,20 @@
 import express from 'express';
 import { GoogleGenAI } from '@google/genai';
 import type { Request, Response } from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3001;
 
 app.use(express.json({ limit: '50mb' }));
+
+// Serve static files from the React build directory
+const fePath = path.join(__dirname, '..', 'dist');
+app.use(express.static(fePath));
 
 // Helper to get the Gemini API key from environment variables
 function getApiKey(): string {
@@ -132,6 +141,11 @@ app.post('/api/segment', async (req: Request, res: Response) => {
     console.error('Error in /api/segment:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// All other routes should serve the React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
 });
 
 app.listen(port, () => {
