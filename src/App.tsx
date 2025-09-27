@@ -56,10 +56,22 @@ function AppContent() {
   );
 }
 
+import { Toaster } from 'react-hot-toast';
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppContent />
+      <Toaster
+        position="bottom-center"
+        toastOptions={{
+          style: {
+            background: '#2d3748',
+            color: '#f7fafc',
+            border: '1px solid #4a5568',
+          },
+        }}
+      />
     </QueryClientProvider>
   );
 }
