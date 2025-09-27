@@ -2,18 +2,19 @@ import express from 'express';
 import { GoogleGenAI } from '@google/genai';
 import type { Request, Response } from 'express';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Use process.cwd() to get the project root directory, ensuring paths are correct
+// in both development (running from root) and production (running from dist-server).
+const projectRoot = process.cwd();
 
 const app = express();
+// Use the PORT environment variable provided by Render, with a fallback for local dev
 const port = process.env.PORT || 3001;
 
 app.use(express.json({ limit: '50mb' }));
 
-// Serve static files from the React build directory
-const fePath = path.join(__dirname, '..', 'dist');
+// Construct an absolute path to the 'dist' directory for serving static files.
+const fePath = path.join(projectRoot, 'dist');
 app.use(express.static(fePath));
 
 // Helper to get the Gemini API key from environment variables
@@ -31,29 +32,12 @@ function buildEditPrompt(instruction: string, hasMask: boolean): string {
     ? "\n\nIMPORTANT: Apply changes ONLY where the mask image shows white pixels (value 255). Leave all other areas completely unchanged. Respect the mask boundaries precisely and maintain seamless blending at the edges."
     : "";
 
-  return `Edit this image according to the following instruction: ${instruction}
-
-Maintain the original image's lighting, perspective, and overall composition. Make the changes look natural and seamlessly integrated.${maskInstruction}
-
-Preserve image quality and ensure the edit looks professional and realistic.`;
+  return `Edit this image according to the following instruction: ${instruction}\n\nMaintain the original image's lighting, perspective, and overall composition. Make the changes look natural and seamlessly integrated.${maskInstruction}\n\nPreserve image quality and ensure the edit looks professional and realistic.`;
 }
 
 // Helper to build the segmentation prompt
 function buildSegmentationPrompt(query: string): string {
-  return `Analyze this image and create a segmentation mask for: ${query}
-
-Return a JSON object with this exact structure:
-{
-  "masks": [
-    {
-      "label": "description of the segmented object",
-      "box_2d": [x, y, width, height],
-      "mask": "base64-encoded binary mask image"
-    }
-  ]
-}
-
-Only segment the specific object or region requested. The mask should be a binary PNG where white pixels (255) indicate the selected region and black pixels (0) indicate the background.`;
+  return `Analyze this image and create a segmentation mask for: ${query}\n\nReturn a JSON object with this exact structure:\n{\n  "masks": [\n    {\n      "label": "description of the segmented object",\n      "box_2d": [x, y, width, height],\n      "mask": "base64-encoded binary mask image"\n    }\n  ]\n}\n\nOnly segment the specific object or region requested. The mask should be a binary PNG where white pixels (255) indicate the selected region and black pixels (0) indicate the background.`;
 }
 
 app.post('/api/generate', async (req: Request, res: Response) => {
@@ -143,9 +127,9 @@ app.post('/api/segment', async (req: Request, res: Response) => {
   }
 });
 
-// All other routes should serve the React app
-app.get(/^\/(?!api).*/, (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
+// All other non-API routes should serve the React app
+app.get('/:path(*)', (req, res) => {
+  res.sendFile(path.join(projectRoot, 'dist', 'index.html'));
 });
 
 app.listen(port, () => {
