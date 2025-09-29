@@ -8,6 +8,6 @@
     "isolatedModules": false,
     "resolveJsonModule": true
   },
-  "include": ["server.mts"],
+  "include": ["server.ts"],
   "exclude": ["src", "node_modules"]
 }

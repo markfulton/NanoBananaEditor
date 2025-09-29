@@ -18,7 +18,7 @@ const fePath = path.join(projectRoot, 'dist');
 app.use(express.static(fePath));
 
 // Helper to get the Gemini API key from environment variables
-function getApiKey(): string {
+function getApiKey() {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY is not set in environment variables.');
