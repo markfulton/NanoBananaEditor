@@ -30,7 +30,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       contents,
     });
 
-    const images: string[] = result.response.candidates[0].content.parts
+    // Correctly access the candidates from the result object
+    const images: string[] = result.candidates[0].content.parts
       .filter((part: any) => part.inlineData)
       .map((part: any) => part.inlineData.data);
 

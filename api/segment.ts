@@ -20,15 +20,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       contents,
     });
 
-    const responseText = result.response.candidates[0].content.parts[0].text;
+    // Correctly access the candidates from the result object
+    const responseText = result.candidates[0].content.parts[0].text;
 
-    // Vercel's body parser will likely already parse this if content-type is json,
-    // but we'll parse it to be safe and to handle cases where it's a string.
     try {
       const jsonResponse = JSON.parse(responseText);
       return res.status(200).json(jsonResponse);
     } catch (e) {
-      // If parsing fails, it might be plain text. Return as is with a different content type.
       return res.status(200).send(responseText);
     }
 
