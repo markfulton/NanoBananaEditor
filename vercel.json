@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/api/generate", "destination": "/api/generate" },
+    { "source": "/api/edit", "destination": "/api/edit" },
+    { "source": "/api/segment", "destination": "/api/segment" }
+  ]
+}
