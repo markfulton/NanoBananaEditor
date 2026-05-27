@@ -23,6 +23,7 @@
     "konva": "^9.3.22",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
+    "react-colorful": "^5.6.1",
     "react-dom": "^18.3.1",
     "react-konva": "^18.2.10",
     "tailwind-merge": "^3.3.1",

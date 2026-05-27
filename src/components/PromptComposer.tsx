@@ -3,7 +3,7 @@ import { Textarea } from './ui/Textarea';
 import { Button } from './ui/Button';
 import { useAppStore } from '../store/useAppStore';
 import { useImageGeneration, useImageEditing } from '../hooks/useImageGeneration';
-import { Upload, Wand2, Edit3, MousePointer, HelpCircle, Menu, ChevronDown, ChevronRight, RotateCcw } from 'lucide-react';
+import { Upload, Wand2, Edit3, MousePointer, Type, HelpCircle, Menu, ChevronDown, ChevronRight, RotateCcw } from 'lucide-react';
 import { blobToBase64 } from '../utils/imageUtils';
 import { PromptHints } from './PromptHints';
 import { cn } from '../utils/cn';
@@ -108,6 +108,7 @@ export const PromptComposer: React.FC = () => {
     { id: 'generate', icon: Wand2, label: 'Generate', description: 'Create from text' },
     { id: 'edit', icon: Edit3, label: 'Edit', description: 'Modify existing' },
     { id: 'mask', icon: MousePointer, label: 'Select', description: 'Click to select' },
+    { id: 'text', icon: Type, label: 'Text', description: 'Add text overlay' },
   ] as const;
 
   if (!showPromptPanel) {
@@ -154,7 +155,7 @@ export const PromptComposer: React.FC = () => {
             </Button>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {tools.map((tool) => (
             <button
               key={tool.id}
@@ -387,6 +388,10 @@ export const PromptComposer: React.FC = () => {
           <div className="flex justify-between">
             <span>Edit mode</span>
             <span>E</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Text mode</span>
+            <span>T</span>
           </div>
           <div className="flex justify-between">
             <span>History</span>

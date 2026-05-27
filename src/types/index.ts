@@ -65,3 +65,20 @@ export interface PromptHint {
   text: string;
   example: string;
 }
+
+export interface TextLayer {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  fontFamily: string;
+  fill: string;
+  align: 'left' | 'center' | 'right';
+  fontStyle: 'normal' | 'bold' | 'italic';
+  textDecoration: '' | 'underline' | 'line-through';
+  rotation: number;
+  width?: number;
+  scaleX?: number;
+  scaleY?: number;
+}

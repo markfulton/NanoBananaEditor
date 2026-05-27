@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Stage, Layer, Image as KonvaImage, Line } from 'react-konva';
+import { Stage, Layer, Image as KonvaImage, Line, Text, Transformer } from 'react-konva';
+import Konva from 'konva';
 import { useAppStore } from '../store/useAppStore';
 import { Button } from './ui/Button';
 import { ZoomIn, ZoomOut, RotateCcw, Download, Eye, EyeOff, Eraser } from 'lucide-react';
@@ -20,10 +21,16 @@ export const ImageCanvas: React.FC = () => {
     selectedTool,
     isGenerating,
     brushSize,
-    setBrushSize
+    setBrushSize,
+    textLayers,
+    selectedTextId,
+    updateTextLayer,
+    selectTextLayer,
   } = useAppStore();
 
   const stageRef = useRef<any>(null);
+  const transformerRef = useRef<any>(null);
+  const textRefs = useRef<{ [key: string]: any }>({});
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
   const [isDrawing, setIsDrawing] = useState(false);
@@ -77,9 +84,27 @@ export const ImageCanvas: React.FC = () => {
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
+  // Attach transformer to selected text
+  useEffect(() => {
+    if (transformerRef.current && selectedTextId && textRefs.current[selectedTextId]) {
+      transformerRef.current.nodes([textRefs.current[selectedTextId]]);
+      transformerRef.current.getLayer()?.batchDraw();
+    } else if (transformerRef.current) {
+      transformerRef.current.nodes([]);
+    }
+  }, [selectedTextId]);
+
   const handleMouseDown = (e: any) => {
+    // Handle text deselection when clicking on empty canvas
+    if (selectedTool === 'text') {
+      const clickedOnEmpty = e.target === e.target.getStage();
+      if (clickedOnEmpty) {
+        selectTextLayer(null);
+      }
+    }
+
     if (selectedTool !== 'mask' || !image) return;
-    
+
     setIsDrawing(true);
     const stage = e.target.getStage();
     const pos = stage.getPointerPosition();
@@ -160,7 +185,19 @@ export const ImageCanvas: React.FC = () => {
   };
 
   const handleDownload = () => {
-    if (canvasImage) {
+    if (stageRef.current) {
+      // Export the entire stage (including text layers)
+      const dataURL = stageRef.current.toDataURL({
+        pixelRatio: 2, // Higher quality export
+      });
+      const link = document.createElement('a');
+      link.href = dataURL;
+      link.download = `nano-banana-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else if (canvasImage) {
+      // Fallback to just the image if stage not available
       if (canvasImage.startsWith('data:')) {
         const link = document.createElement('a');
         link.href = canvasImage;
@@ -332,6 +369,80 @@ export const ImageCanvas: React.FC = () => {
                 opacity={0.6}
                 x={(stageSize.width / canvasZoom - (image?.width || 0)) / 2}
                 y={(stageSize.height / canvasZoom - (image?.height || 0)) / 2}
+              />
+            )}
+
+            {/* Text Layers */}
+            {textLayers.map((textLayer) => (
+              <Text
+                key={textLayer.id}
+                ref={(node) => {
+                  if (node) {
+                    textRefs.current[textLayer.id] = node;
+                  }
+                }}
+                text={textLayer.text}
+                x={textLayer.x}
+                y={textLayer.y}
+                fontSize={textLayer.fontSize}
+                fontFamily={textLayer.fontFamily}
+                fill={textLayer.fill}
+                align={textLayer.align}
+                fontStyle={textLayer.fontStyle}
+                textDecoration={textLayer.textDecoration}
+                rotation={textLayer.rotation}
+                width={textLayer.width}
+                scaleX={textLayer.scaleX || 1}
+                scaleY={textLayer.scaleY || 1}
+                draggable={selectedTool === 'text'}
+                onClick={() => {
+                  if (selectedTool === 'text') {
+                    selectTextLayer(textLayer.id);
+                  }
+                }}
+                onTap={() => {
+                  if (selectedTool === 'text') {
+                    selectTextLayer(textLayer.id);
+                  }
+                }}
+                onDragEnd={(e) => {
+                  updateTextLayer(textLayer.id, {
+                    x: e.target.x(),
+                    y: e.target.y(),
+                  });
+                }}
+                onTransformEnd={(e) => {
+                  const node = e.target;
+                  const scaleX = node.scaleX();
+                  const scaleY = node.scaleY();
+
+                  // Reset scale and apply it to width
+                  node.scaleX(1);
+                  node.scaleY(1);
+
+                  updateTextLayer(textLayer.id, {
+                    x: node.x(),
+                    y: node.y(),
+                    rotation: node.rotation(),
+                    width: Math.max(5, node.width() * scaleX),
+                    scaleX: 1,
+                    scaleY: 1,
+                  });
+                }}
+              />
+            ))}
+
+            {/* Transformer for selected text */}
+            {selectedTool === 'text' && (
+              <Transformer
+                ref={transformerRef}
+                boundBoxFunc={(oldBox, newBox) => {
+                  // Limit resize
+                  if (newBox.width < 5 || newBox.height < 5) {
+                    return oldBox;
+                  }
+                  return newBox;
+                }}
               />
             )}
           </Layer>

@@ -9,13 +9,30 @@ export const useKeyboardShortcuts = () => {
     setShowPromptPanel,
     showPromptPanel,
     currentPrompt,
-    isGenerating
+    isGenerating,
+    selectedTextId,
+    deleteTextLayer,
+    selectTextLayer,
+    selectedTool,
+    undoText,
+    redoText,
   } = useAppStore();
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Handle undo/redo even when typing (for text tool)
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z' && selectedTool === 'text') {
+        event.preventDefault();
+        if (event.shiftKey) {
+          redoText();
+        } else {
+          undoText();
+        }
+        return;
+      }
+
       // Ignore if user is typing in an input
-      if (event.target instanceof HTMLInputElement || 
+      if (event.target instanceof HTMLInputElement ||
           event.target instanceof HTMLTextAreaElement) {
         // Only handle Cmd/Ctrl + Enter for generation
         if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
@@ -40,6 +57,10 @@ export const useKeyboardShortcuts = () => {
           event.preventDefault();
           setSelectedTool('mask');
           break;
+        case 't':
+          event.preventDefault();
+          setSelectedTool('text');
+          break;
         case 'h':
           event.preventDefault();
           setShowHistory(!showHistory);
@@ -54,10 +75,25 @@ export const useKeyboardShortcuts = () => {
             console.log('Re-roll variants');
           }
           break;
+        case 'delete':
+        case 'backspace':
+          // Delete selected text layer
+          if (selectedTextId) {
+            event.preventDefault();
+            deleteTextLayer(selectedTextId);
+          }
+          break;
+        case 'escape':
+          // Deselect text layer
+          if (selectedTextId) {
+            event.preventDefault();
+            selectTextLayer(null);
+          }
+          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setSelectedTool, setShowHistory, showHistory, setShowPromptPanel, showPromptPanel, currentPrompt, isGenerating]);
+  }, [setSelectedTool, setShowHistory, showHistory, setShowPromptPanel, showPromptPanel, currentPrompt, isGenerating, selectedTextId, deleteTextLayer, selectTextLayer, selectedTool, undoText, redoText]);
 };

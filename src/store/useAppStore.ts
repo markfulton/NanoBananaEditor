@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { Project, Generation, Edit, SegmentationMask, BrushStroke } from '../types';
+import { Project, Generation, Edit, SegmentationMask, BrushStroke, TextLayer } from '../types';
 
 interface AppState {
   // Current project
@@ -35,7 +35,13 @@ interface AppState {
   showPromptPanel: boolean;
   
   // UI state
-  selectedTool: 'generate' | 'edit' | 'mask';
+  selectedTool: 'generate' | 'edit' | 'mask' | 'text';
+
+  // Text layers state
+  textLayers: TextLayer[];
+  selectedTextId: string | null;
+  textHistory: TextLayer[][];
+  textHistoryIndex: number;
   
   // Actions
   setCurrentProject: (project: Project | null) => void;
@@ -68,8 +74,17 @@ interface AppState {
   setShowHistory: (show: boolean) => void;
   
   setShowPromptPanel: (show: boolean) => void;
-  
-  setSelectedTool: (tool: 'generate' | 'edit' | 'mask') => void;
+
+  setSelectedTool: (tool: 'generate' | 'edit' | 'mask' | 'text') => void;
+
+  // Text layer actions
+  addTextLayer: (layer: TextLayer) => void;
+  updateTextLayer: (id: string, updates: Partial<TextLayer>) => void;
+  deleteTextLayer: (id: string) => void;
+  selectTextLayer: (id: string | null) => void;
+  clearTextLayers: () => void;
+  undoText: () => void;
+  redoText: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -98,8 +113,13 @@ export const useAppStore = create<AppState>()(
       showHistory: true,
       
       showPromptPanel: true,
-      
+
       selectedTool: 'generate',
+
+      textLayers: [],
+      selectedTextId: null,
+      textHistory: [[]],
+      textHistoryIndex: 0,
       
       // Actions
       setCurrentProject: (project) => set({ currentProject: project }),
@@ -156,8 +176,68 @@ export const useAppStore = create<AppState>()(
       setShowHistory: (show) => set({ showHistory: show }),
       
       setShowPromptPanel: (show) => set({ showPromptPanel: show }),
-      
+
       setSelectedTool: (tool) => set({ selectedTool: tool }),
+
+      // Text layer actions
+      addTextLayer: (layer) => set((state) => {
+        const newLayers = [...state.textLayers, layer];
+        const newHistory = state.textHistory.slice(0, state.textHistoryIndex + 1);
+        newHistory.push(JSON.parse(JSON.stringify(newLayers)));
+        return {
+          textLayers: newLayers,
+          selectedTextId: layer.id,
+          textHistory: newHistory,
+          textHistoryIndex: newHistory.length - 1,
+        };
+      }),
+      updateTextLayer: (id, updates) => set((state) => {
+        const newLayers = state.textLayers.map((layer) =>
+          layer.id === id ? { ...layer, ...updates } : layer
+        );
+        const newHistory = state.textHistory.slice(0, state.textHistoryIndex + 1);
+        newHistory.push(JSON.parse(JSON.stringify(newLayers)));
+        return {
+          textLayers: newLayers,
+          textHistory: newHistory,
+          textHistoryIndex: newHistory.length - 1,
+        };
+      }),
+      deleteTextLayer: (id) => set((state) => {
+        const newLayers = state.textLayers.filter((layer) => layer.id !== id);
+        const newHistory = state.textHistory.slice(0, state.textHistoryIndex + 1);
+        newHistory.push(JSON.parse(JSON.stringify(newLayers)));
+        return {
+          textLayers: newLayers,
+          selectedTextId: state.selectedTextId === id ? null : state.selectedTextId,
+          textHistory: newHistory,
+          textHistoryIndex: newHistory.length - 1,
+        };
+      }),
+      selectTextLayer: (id) => set({ selectedTextId: id }),
+      clearTextLayers: () => set({ textLayers: [], selectedTextId: null, textHistory: [[]], textHistoryIndex: 0 }),
+      undoText: () => set((state) => {
+        if (state.textHistoryIndex > 0) {
+          const newIndex = state.textHistoryIndex - 1;
+          return {
+            textLayers: JSON.parse(JSON.stringify(state.textHistory[newIndex])),
+            textHistoryIndex: newIndex,
+            selectedTextId: null,
+          };
+        }
+        return state;
+      }),
+      redoText: () => set((state) => {
+        if (state.textHistoryIndex < state.textHistory.length - 1) {
+          const newIndex = state.textHistoryIndex + 1;
+          return {
+            textLayers: JSON.parse(JSON.stringify(state.textHistory[newIndex])),
+            textHistoryIndex: newIndex,
+            selectedTextId: null,
+          };
+        }
+        return state;
+      }),
     }),
     { name: 'nano-banana-store' }
   )
