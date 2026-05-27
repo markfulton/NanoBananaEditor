@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { Project, Generation, Edit, SegmentationMask, BrushStroke } from '../types';
+import { Project, Generation, Edit, BrushStroke } from '../types';
+import { generateId } from '../utils/imageUtils';
 
 interface AppState {
   // Current project
@@ -36,8 +37,10 @@ interface AppState {
   
   // UI state
   selectedTool: 'generate' | 'edit' | 'mask';
+  error: string | null;
   
   // Actions
+  setError: (error: string | null) => void;
   setCurrentProject: (project: Project | null) => void;
   setCanvasImage: (url: string | null) => void;
   setCanvasZoom: (zoom: number) => void;
@@ -100,32 +103,24 @@ export const useAppStore = create<AppState>()(
       showPromptPanel: true,
       
       selectedTool: 'generate',
+      error: null,
       
       // Actions
+      setError: (error) => set({ error }),
       setCurrentProject: (project) => set({ currentProject: project }),
       setCanvasImage: (url) => set({ canvasImage: url }),
       setCanvasZoom: (zoom) => set({ canvasZoom: zoom }),
       setCanvasPan: (pan) => set({ canvasPan: pan }),
       
-      addUploadedImage: (url) => set((state) => ({ 
-        uploadedImages: [...state.uploadedImages, url] 
-      })),
-      removeUploadedImage: (index) => set((state) => ({ 
-        uploadedImages: state.uploadedImages.filter((_, i) => i !== index) 
-      })),
+      addUploadedImage: (url) => set((state) => ({ uploadedImages: [...state.uploadedImages, url] })),
+      removeUploadedImage: (index) => set((state) => ({ uploadedImages: state.uploadedImages.filter((_, i) => i !== index) })),
       clearUploadedImages: () => set({ uploadedImages: [] }),
       
-      addEditReferenceImage: (url) => set((state) => ({ 
-        editReferenceImages: [...state.editReferenceImages, url] 
-      })),
-      removeEditReferenceImage: (index) => set((state) => ({ 
-        editReferenceImages: state.editReferenceImages.filter((_, i) => i !== index) 
-      })),
+      addEditReferenceImage: (url) => set((state) => ({ editReferenceImages: [...state.editReferenceImages, url] })),
+      removeEditReferenceImage: (index) => set((state) => ({ editReferenceImages: state.editReferenceImages.filter((_, i) => i !== index) })),
       clearEditReferenceImages: () => set({ editReferenceImages: [] }),
       
-      addBrushStroke: (stroke) => set((state) => ({ 
-        brushStrokes: [...state.brushStrokes, stroke] 
-      })),
+      addBrushStroke: (stroke) => set((state) => ({ brushStrokes: [...state.brushStrokes, stroke] })),
       clearBrushStrokes: () => set({ brushStrokes: [] }),
       setBrushSize: (size) => set({ brushSize: size }),
       setShowMasks: (show) => set({ showMasks: show }),
@@ -135,21 +130,38 @@ export const useAppStore = create<AppState>()(
       setTemperature: (temp) => set({ temperature: temp }),
       setSeed: (seed) => set({ seed: seed }),
       
-      addGeneration: (generation) => set((state) => ({
-        currentProject: state.currentProject ? {
-          ...state.currentProject,
-          generations: [...state.currentProject.generations, generation],
-          updatedAt: Date.now()
-        } : null
-      })),
-      
-      addEdit: (edit) => set((state) => ({
-        currentProject: state.currentProject ? {
-          ...state.currentProject,
-          edits: [...state.currentProject.edits, edit],
-          updatedAt: Date.now()
-        } : null
-      })),
+      addGeneration: (generation) => set((state) => {
+        if (state.currentProject) {
+          return {
+            currentProject: {
+              ...state.currentProject,
+              generations: [...state.currentProject.generations, generation],
+              updatedAt: Date.now(),
+            },
+          };
+        } else {
+          const newProject: Project = {
+            id: generateId(),
+            title: 'Untitled Project',
+            generations: [generation],
+            edits: [],
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          return { currentProject: newProject };
+        }
+      }),
+
+      addEdit: (edit) => set((state) => {
+        if (!state.currentProject) return {}; // Should not happen if an edit is being added
+        return {
+          currentProject: {
+            ...state.currentProject,
+            edits: [...state.currentProject.edits, edit],
+            updatedAt: Date.now(),
+          },
+        };
+      }),
       
       selectGeneration: (id) => set({ selectedGenerationId: id }),
       selectEdit: (id) => set({ selectedEditId: id }),
