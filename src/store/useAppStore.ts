@@ -37,6 +37,10 @@ interface AppState {
   // UI state
   selectedTool: 'generate' | 'edit' | 'mask';
   
+  // Settings
+  showSettings: boolean;
+  apiKey: string | null;
+  
   // Actions
   setCurrentProject: (project: Project | null) => void;
   setCanvasImage: (url: string | null) => void;
@@ -70,6 +74,9 @@ interface AppState {
   setShowPromptPanel: (show: boolean) => void;
   
   setSelectedTool: (tool: 'generate' | 'edit' | 'mask') => void;
+  
+  setShowSettings: (show: boolean) => void;
+  setApiKey: (key: string | null) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -100,6 +107,9 @@ export const useAppStore = create<AppState>()(
       showPromptPanel: true,
       
       selectedTool: 'generate',
+      
+      showSettings: false,
+      apiKey: localStorage.getItem('gemini-api-key') || null,
       
       // Actions
       setCurrentProject: (project) => set({ currentProject: project }),
@@ -158,6 +168,16 @@ export const useAppStore = create<AppState>()(
       setShowPromptPanel: (show) => set({ showPromptPanel: show }),
       
       setSelectedTool: (tool) => set({ selectedTool: tool }),
+      
+      setShowSettings: (show) => set({ showSettings: show }),
+      setApiKey: (key) => {
+        if (key) {
+          localStorage.setItem('gemini-api-key', key);
+        } else {
+          localStorage.removeItem('gemini-api-key');
+        }
+        set({ apiKey: key });
+      },
     }),
     { name: 'nano-banana-store' }
   )
