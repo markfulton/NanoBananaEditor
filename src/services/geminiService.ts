@@ -43,7 +43,7 @@ export class GeminiService {
       }
 
       const response = await genAI.models.generateContent({
-        model: "gemini-2.5-flash-image-preview",
+        model: "gemini-2.5-flash-image",
         contents,
       });
 
@@ -96,7 +96,7 @@ export class GeminiService {
       }
 
       const response = await genAI.models.generateContent({
-        model: "gemini-2.5-flash-image-preview",
+        model: "gemini-2.5-flash-image",
         contents,
       });
 
@@ -141,7 +141,7 @@ Only segment the specific object or region requested. The mask should be a binar
       ];
 
       const response = await genAI.models.generateContent({
-        model: "gemini-2.5-flash-image-preview",
+        model: "gemini-2.5-flash-image",
         contents: prompt,
       });
 
