@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.0 (2026-10-07)
+
+### Models
+- Nano Banana 2.1 (`gemini-nano-banana-2.1`) replaces Nano Banana 2 (`gemini-3.1-flash-image`) as the Standard model and the default. Google released it on 2026-10-06 and deprecated Nano Banana 2 the same day. Credit prices are unchanged.
+- Standard renders at 1K, 2K and 4K (Nano Banana 2.1 has no 512px tier) and accepts up to 14 reference images.
+- Saved settings and history that name Nano Banana 2 move to Nano Banana 2.1 automatically, and the image endpoint accepts the old id from cached frontends.
+
 ## 2.0.0 (2026-09-10)
 
 The editor was rebuilt from the ground up for the current Nano Banana models.

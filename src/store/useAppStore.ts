@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import { get as idbGet, set as idbSet, del as idbDel } from 'idb-keyval';
 import type { BrushStroke, HistoryItem, ImageRef, Mode } from '../types';
-import { DEFAULT_MODEL, MODELS, resolveSize, type ImageSize, type ModelId, type ThinkingLevel } from '../lib/models';
+import { DEFAULT_MODEL, MODELS, currentModelId, resolveSize, type ImageSize, type ModelId, type ThinkingLevel } from '../lib/models';
 
 const MAX_HISTORY = 80;
 
@@ -224,7 +224,16 @@ export const useAppStore = create<AppState>()(
         brushSize: s.brushSize,
       }),
       onRehydrateStorage: () => (state) => {
-        if (state) useAppStore.setState({ hydrated: true });
+        if (!state) return;
+        // Saved settings and history can name a model this editor no longer
+        // offers (Nano Banana 2 became 2.1 on 2026-10-07). Move them onto the
+        // current id so every MODELS[...] lookup finds a spec.
+        const model = currentModelId(state.settings.model) ?? DEFAULT_MODEL;
+        useAppStore.setState({
+          hydrated: true,
+          settings: { ...state.settings, model, size: resolveSize(model, state.settings.size) },
+          history: state.history.map((item) => ({ ...item, model: currentModelId(item.model) ?? DEFAULT_MODEL })),
+        });
       },
     }
   )

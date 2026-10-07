@@ -6,7 +6,7 @@ import { GoogleGenAI } from 'npm:@google/genai@2.21.0';
 import { createClient } from 'npm:@supabase/supabase-js@2.56.1';
 import {
   MODELS,
-  isModelId,
+  currentModelId,
   resolveSize,
   resolveAspectRatio,
   creditsPerImage,
@@ -133,9 +133,8 @@ Deno.serve(async (req: Request) => {
   const prompt = (body.prompt ?? '').trim();
   if (!prompt) return json({ error: 'A prompt is required.' }, 400);
   if (prompt.length > 8000) return json({ error: 'Prompt is too long (8000 characters max).' }, 400);
-  if (!isModelId(body.model)) return json({ error: `Unknown model: ${body.model}` }, 400);
-
-  const model = body.model;
+  const model = currentModelId(body.model);
+  if (!model) return json({ error: `Unknown model: ${body.model}` }, 400);
   const spec = MODELS[model];
   const mode = body.mode === 'edit' ? 'edit' : 'generate';
   const size = resolveSize(model, body.size);

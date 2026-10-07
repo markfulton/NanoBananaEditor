@@ -9,7 +9,7 @@
 
 export type ModelId =
   | 'gemini-3.1-flash-lite-image'
-  | 'gemini-3.1-flash-image'
+  | 'gemini-nano-banana-2.1'
   | 'gemini-3-pro-image';
 
 export type ImageSize = '512' | '1K' | '2K' | '4K';
@@ -62,22 +62,22 @@ export const MODELS: Record<ModelId, ModelSpec> = {
     apiCostUsd: { '512': 0.0336, '1K': 0.0336, '2K': 0.0336, '4K': 0.0336 },
     typicalSeconds: [3, 8],
   },
-  'gemini-3.1-flash-image': {
-    id: 'gemini-3.1-flash-image',
-    name: 'Nano Banana 2',
+  'gemini-nano-banana-2.1': {
+    id: 'gemini-nano-banana-2.1',
+    name: 'Nano Banana 2.1',
     short: 'Standard',
     tier: 'standard',
-    tagline: 'The everyday workhorse. Pro-level quality at Flash speed, up to 4K.',
-    strengths: ['512px to 4K output', 'Google Search grounding', 'Up to 10 reference images', 'Extended ratios like 4:1'],
-    sizes: ['512', '1K', '2K', '4K'],
+    tagline: "The everyday workhorse. Google's newest image model, up to 4K.",
+    strengths: ['1K to 4K output', 'Google Search grounding', 'Up to 14 reference images', 'Extended ratios like 4:1'],
+    sizes: ['1K', '2K', '4K'],
     defaultSize: '1K',
     aspectRatios: EXTENDED_RATIOS,
-    maxInputImages: 10,
+    maxInputImages: 14,
     supportsSearch: true,
     thinkingControl: true,
     credits: { '512': 1, '1K': 1, '2K': 2, '4K': 3 },
-    apiCostUsd: { '512': 0.045, '1K': 0.067, '2K': 0.101, '4K': 0.151 },
-    typicalSeconds: [8, 25],
+    apiCostUsd: { '512': 0.0336, '1K': 0.0336, '2K': 0.0504, '4K': 0.113 },
+    typicalSeconds: [10, 30],
   },
   'gemini-3-pro-image': {
     id: 'gemini-3-pro-image',
@@ -100,14 +100,29 @@ export const MODELS: Record<ModelId, ModelSpec> = {
 
 export const MODEL_LIST: ModelSpec[] = [
   MODELS['gemini-3.1-flash-lite-image'],
-  MODELS['gemini-3.1-flash-image'],
+  MODELS['gemini-nano-banana-2.1'],
   MODELS['gemini-3-pro-image'],
 ];
 
-export const DEFAULT_MODEL: ModelId = 'gemini-3.1-flash-image';
+export const DEFAULT_MODEL: ModelId = 'gemini-nano-banana-2.1';
 
 export function isModelId(value: unknown): value is ModelId {
   return typeof value === 'string' && value in MODELS;
+}
+
+/**
+ * Ids this editor used to offer, mapped to their replacement. Saved settings,
+ * history items and older cached frontends can still carry them. Nano Banana 2
+ * (gemini-3.1-flash-image) was deprecated by Google on 2026-10-06.
+ */
+const RETIRED_MODELS: Record<string, ModelId> = {
+  'gemini-3.1-flash-image': 'gemini-nano-banana-2.1',
+};
+
+/** A current model id for any id this editor has ever used, or undefined. */
+export function currentModelId(value: unknown): ModelId | undefined {
+  if (isModelId(value)) return value;
+  return typeof value === 'string' ? RETIRED_MODELS[value] : undefined;
 }
 
 /** Clamp a size to what the model supports. */

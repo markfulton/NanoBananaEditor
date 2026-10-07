@@ -51,7 +51,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({ open, onOpenChange
   };
 
   const lite = MODELS['gemini-3.1-flash-lite-image'];
-  const std = MODELS['gemini-3.1-flash-image'];
+  const std = MODELS['gemini-nano-banana-2.1'];
   const pro = MODELS['gemini-3-pro-image'];
 
   return (
