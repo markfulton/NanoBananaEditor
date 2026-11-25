@@ -106,6 +106,7 @@ async function handleEvent(event: Stripe.Event) {
       console.info(`Starting subscription sync for customer: ${customerId}`);
       await syncCustomerFromStripe(customerId);
     } else if (mode === 'payment' && payment_status === 'paid') {
+      let claimedSessionId: string | null = null;
       try {
         // Extract the necessary information from the session
         const {
@@ -117,10 +118,35 @@ async function handleEvent(event: Stripe.Event) {
           line_items,
         } = stripeData as Stripe.Checkout.Session;
 
+        // Claim this checkout session first. stripe_orders has a unique key on
+        // checkout_session_id, so a redelivered event cannot add credits twice.
+        const { error: orderError } = await supabase.from('stripe_orders').insert({
+          checkout_session_id,
+          payment_intent_id: payment_intent || checkout_session_id, // Use session ID if payment_intent is null
+          customer_id: customerId,
+          amount_subtotal,
+          amount_total,
+          currency,
+          payment_status,
+          status: 'completed', // assuming we want to mark it as completed since payment is successful
+        });
+
+        if (orderError) {
+          if (orderError.code === '23505') {
+            console.info(`Session ${checkout_session_id} already processed, skipping`);
+          } else {
+            console.error('Error inserting order:', orderError);
+          }
+          return;
+        }
+        claimedSessionId = checkout_session_id;
+
         // Get line items to determine what was purchased
         const session = await stripe.checkout.sessions.retrieve(checkout_session_id, {
           expand: ['line_items.data.price'],
         });
+
+        let creditsFailed = false;
 
         // Process each line item to add credits
         if (session.line_items?.data) {
@@ -137,39 +163,16 @@ async function handleEvent(event: Stripe.Event) {
                   .single();
 
                 if (customerData?.user_id) {
-                  // Add credits to user account
-                  // First, check if user_credits record exists
-                  const { data: existingCredits } = await supabase
-                    .from('user_credits')
-                    .select('credits_balance')
-                    .eq('user_id', customerData.user_id)
-                    .single();
-
                   const creditsToAdd = product.credits * (item.quantity || 1);
 
-                  let creditsError;
-                  if (existingCredits) {
-                    // Update existing credits
-                    const { error } = await supabase
-                      .from('user_credits')
-                      .update({
-                        credits_balance: existingCredits.credits_balance + creditsToAdd,
-                        updated_at: new Date().toISOString()
-                      })
-                      .eq('user_id', customerData.user_id);
-                    creditsError = error;
-                  } else {
-                    // Create new credits record
-                    const { error } = await supabase
-                      .from('user_credits')
-                      .insert({
-                        user_id: customerData.user_id,
-                        credits_balance: creditsToAdd
-                      });
-                    creditsError = error;
-                  }
+                  // add_user_credits upserts and increments in one statement
+                  const { error: creditsError } = await supabase.rpc('add_user_credits', {
+                    user_uuid: customerData.user_id,
+                    credits_to_add: creditsToAdd,
+                  });
 
                   if (creditsError) {
+                    creditsFailed = true;
                     console.error('Error adding credits:', creditsError);
                   } else {
                     console.info(`Added ${creditsToAdd} credits to user ${customerData.user_id}`);
@@ -180,25 +183,18 @@ async function handleEvent(event: Stripe.Event) {
           }
         }
 
-        // Insert the order into the stripe_orders table
-        const { error: orderError } = await supabase.from('stripe_orders').insert({
-          checkout_session_id,
-          payment_intent_id: payment_intent || checkout_session_id, // Use session ID if payment_intent is null
-          customer_id: customerId,
-          amount_subtotal,
-          amount_total,
-          currency,
-          payment_status,
-          status: 'completed', // assuming we want to mark it as completed since payment is successful
-        });
-
-        if (orderError) {
-          console.error('Error inserting order:', orderError);
+        if (creditsFailed) {
+          // Release the claim so a manual replay of the event can try again.
+          await supabase.from('stripe_orders').delete().eq('checkout_session_id', checkout_session_id);
           return;
         }
         console.info(`Successfully processed one-time payment for session: ${checkout_session_id}`);
       } catch (error) {
         console.error('Error processing one-time payment:', error);
+        if (claimedSessionId) {
+          // Release the claim so a manual replay of the event can try again.
+          await supabase.from('stripe_orders').delete().eq('checkout_session_id', claimedSessionId);
+        }
       }
     }
   }
